@@ -7,7 +7,7 @@ Original file is located at
     https://colab.research.google.com/drive/1ICKRfOaFstctO7Fn_BokqD8YDeoc-BA1
 """
 
-!pip install python-telegram-bot openai
+
 
 import nest_asyncio
 nest_asyncio.apply()
