@@ -9,6 +9,11 @@ from telegram.ext import ApplicationBuilder, MessageHandler, CommandHandler, Con
 import os
 from PIL import Image, ImageDraw, ImageFont
 import io
+import urllib.request
+urllib.request.urlretrieve(
+    "https://github.com/dejavu-fonts/dejavu-fonts/raw/master/ttf/DejaVuSans.ttf",
+    "/tmp/DejaVuSans.ttf"
+)
 
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
 OPENROUTER_KEY = os.environ.get("OPENROUTER_KEY")
@@ -83,7 +88,8 @@ async def answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
         h = row_h * len(sizes) + pad * 2 + 30
         img = Image.new("RGB", (w, h), "#1a1a2e")
         draw = ImageDraw.Draw(img)
-        font = ImageFont.load_default()
+        font = ImageFont.truetype("/tmp/DejaVuSans.ttf", 14)
+font_bold = ImageFont.truetype("/tmp/DejaVuSans.ttf", 14)
         draw.text((pad, pad), "📏 Таблица размеров Mari-Line", fill="#e8d5b7", font=font)
         y = pad + 30
         for i, row in enumerate(sizes):
