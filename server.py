@@ -10,9 +10,10 @@ import os
 from PIL import Image, ImageDraw, ImageFont
 import io
 import urllib.request
+
 urllib.request.urlretrieve(
-    "https://github.com/dejavu-fonts/dejavu-fonts/raw/master/ttf/DejaVuSans.ttf",
-    "/tmp/DejaVuSans.ttf"
+    "https://github.com/googlefonts/roboto/raw/main/src/hinted/Roboto-Regular.ttf",
+    "/tmp/font.ttf"
 )
 
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
@@ -47,7 +48,6 @@ MENU = ReplyKeyboardMarkup(
 )
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Сбрасываем историю при /start
     context.user_data["history"] = []
     await update.message.reply_text(
         "Привет! Я Анфиса, менеджер Mari-Line 👗\nЧем могу помочь?",
@@ -67,6 +67,7 @@ async def answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "Цвет: Navy Blue\n"
             "Длина: миди, А-силуэт"
         )
+
     elif user_text == "📏 Таблица размеров":
         sizes = [
             ("Разм", "Гр", "Тал", "Бд", "Пл", "Выс"),
@@ -88,9 +89,8 @@ async def answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
         h = row_h * len(sizes) + pad * 2 + 30
         img = Image.new("RGB", (w, h), "#1a1a2e")
         draw = ImageDraw.Draw(img)
-        font = ImageFont.truetype("/tmp/DejaVuSans.ttf", 14)
-        font_bold = ImageFont.truetype("/tmp/DejaVuSans.ttf", 14)
-        draw.text((pad, pad), "📏 Таблица размеров Mari-Line", fill="#e8d5b7", font=font)
+        font = ImageFont.truetype("/tmp/font.ttf", 14)
+        draw.text((pad, pad), "Таблица размеров Mari-Line (см)", fill="#e8d5b7", font=font)
         y = pad + 30
         for i, row in enumerate(sizes):
             x = pad
@@ -99,7 +99,7 @@ async def answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
             for j, cell in enumerate(row):
                 color = "#ffffff" if j == 0 else "#cccccc"
                 if i == 0:
-                    color = "#888888"
+                    color = "#aaaaaa"
                 draw.text((x + 6, y + 10), cell, fill=color, font=font)
                 x += col_w[j]
             y += row_h
@@ -107,6 +107,7 @@ async def answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
         img.save(buf, format="PNG")
         buf.seek(0)
         await update.message.reply_photo(photo=buf)
+
     elif user_text == "🚚 Доставка":
         await update.message.reply_text(
             "🚚 Доставка:\n\n"
@@ -115,10 +116,12 @@ async def answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "📦 Отправка в день оплаты\n"
             "🏪 Самовывоз — Новосибирск (уточните адрес у менеджера)"
         )
+
     elif user_text == "💬 Задать вопрос":
         await update.message.reply_text(
             "Конечно! Задавайте — я отвечу 😊"
         )
+
     else:
         if "history" not in context.user_data:
             context.user_data["history"] = []
