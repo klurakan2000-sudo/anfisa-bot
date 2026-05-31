@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Анфиса — ИИ-менеджер Mari-Line
-Flask (веб-виджет) + Telegram (@Afisa_bot) + Gemini - 1.5-flash + каталог 798 товаров
+Flask (веб-виджет) + Telegram (@Afisa_bot) + Gemini 2.0 Flash + каталог 798 товаров
 
 Переменные окружения Railway:
   TELEGRAM_TOKEN  — токен бота
@@ -104,7 +104,7 @@ def search_catalog(query: str, max_results: int = 5) -> str:
     return "\n".join(lines)
 
 # ─── Системный промпт ─────────────────────────────────────────────────────────
-SYSTEM_PROMPT = """Ты — Анфиса, менеджер по продажам бренда Mari-Line (женская одежда, Новосибирск).
+SYSTEM_PROMPT = f"""Ты — Анфиса, менеджер по продажам бренда Mari-Line (женская одежда, Новосибирск).
 
 Правила:
 - Ты женщина. Всегда женский род: «рада», «помогла», «ответила». Никогда мужской.
@@ -115,6 +115,8 @@ SYSTEM_PROMPT = """Ты — Анфиса, менеджер по продажам
 
 Доставка: СДЭК, ПЭК, Энергия, DPD. До транспортной компании — бесплатно. Отправка в день оплаты. Самовывоз — Новосибирск (адрес уточните у менеджера).
 Оплата: безналичный расчёт, для юрлиц — по счёту.
+
+Каталог: {catalog_summary()}
 
 Когда пользователь спрашивает о товарах — используй данные из каталога, которые я добавлю в сообщение в блоке [КАТАЛОГ].
 """
@@ -142,7 +144,7 @@ def ask_gemini(chat, user_text: str) -> str:
 flask_app = Flask(__name__)
 CORS(flask_app)
 
-web_sessions = {}
+web_sessions: dict[str, object] = {}  # session_id -> chat
 
 HTML = """<!DOCTYPE html>
 <html lang="ru">
@@ -243,8 +245,8 @@ def index():
 
 @flask_app.route("/chat", methods=["POST"])
 def chat_endpoint():
-    data = request.get_json(force=True)
-    sid = data.get("session_id", "default")
+    data    = request.get_json(force=True)
+    sid     = data.get("session_id", "default")
     user_text = (data.get("message") or "").strip()
     if not user_text:
         return jsonify({"reply": ""})
@@ -264,7 +266,7 @@ MENU = ReplyKeyboardMarkup(
     resize_keyboard=True
 )
 
-tg_sessions = {}
+tg_sessions: dict[int, object] = {}  # user_id -> chat
 
 async def tg_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
@@ -278,6 +280,7 @@ async def tg_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid  = update.effective_user.id
     text = update.message.text
 
+    # Кнопки меню
     if text == "📦 Каталог":
         cats = Counter(p["category"] for p in load_catalog())
         lines = ["📦 Ассортимент Mari-Line:\n"]
@@ -308,6 +311,7 @@ async def tg_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Конечно, спрашивайте! 😊")
         return
 
+    # ИИ-ответ
     if uid not in tg_sessions:
         tg_sessions[uid] = new_chat()
     chat = tg_sessions[uid]
@@ -315,23 +319,39 @@ async def tg_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(reply)
 
 def run_telegram():
+    """Запускает Telegram-бота в отдельном потоке с собственным event loop."""
     if not TELEGRAM_TOKEN:
         log.warning("TELEGRAM_TOKEN не задан — Telegram-бот не запущен")
         return
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    tg_app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
+    tg_app = (
+        ApplicationBuilder()
+        .token(TELEGRAM_TOKEN)
+        .build()
+    )
     tg_app.add_handler(CommandHandler("start", tg_start))
     tg_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, tg_message))
+
     log.info("Telegram-бот запущен")
-    loop.run_until_complete(tg_app.run_polling())
+
+    tg_app.run_polling(
+        close_loop=False,
+        stop_signals=None
+)
 
 # ─── Точка входа ──────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     if not GEMINI_KEY:
         raise RuntimeError("GEMINI_KEY не задан!")
+
+    # Прогреваем каталог при старте
     load_catalog()
+
+    # Telegram в фоновом потоке
     tg_thread = threading.Thread(target=run_telegram, daemon=True)
     tg_thread.start()
+
+    # Flask в основном потоке
     log.info("Flask запущен на порту %d", PORT)
     flask_app.run(host="0.0.0.0", port=PORT, debug=False, use_reloader=False)
