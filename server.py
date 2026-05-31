@@ -324,7 +324,7 @@ def run_telegram():
     tg_app.add_handler(CommandHandler("start", tg_start))
     tg_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, tg_message))
     log.info("Telegram-бот запущен")
-    tg_app.run_polling(close_loop=False)
+    loop.run_until_complete(tg_app.run_polling())
 
 # ─── Точка входа ──────────────────────────────────────────────────────────────
 if __name__ == "__main__":
