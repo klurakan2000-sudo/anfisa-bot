@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Анфиса — ИИ-менеджер Mari-Line
-Flask (веб-виджет) + Telegram (@Afisa_bot) + Gemini 2.0 Flash + каталог 798 товаров
+Flask (веб-виджет) + Telegram (@Afisa_bot) + gemini-2.0-flash + каталог 798 товаров
 
 Переменные окружения Railway:
   TELEGRAM_TOKEN  — токен бота
